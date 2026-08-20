@@ -1,0 +1,453 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+
+--==================================================
+-- GUI
+--==================================================
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "CustomMenu"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- NÚT MỞ / ĐÓNG
+local toggle = Instance.new("TextButton")
+toggle.Size = UDim2.fromOffset(130, 40)
+toggle.Position = UDim2.fromOffset(20, 20)
+toggle.Text = "MỞ MENU"
+toggle.TextSize = 16
+toggle.TextColor3 = Color3.new(1,1,1)
+toggle.BackgroundColor3 = Color3.fromRGB(35,35,35)
+toggle.BorderSizePixel = 0
+toggle.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = toggle
+
+-- MENU
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromOffset(320, 390)
+frame.Position = UDim2.fromOffset(20, 70)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.BorderSizePixel = 0
+frame.Visible = false
+frame.Parent = gui
+
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 10)
+frameCorner.Parent = frame
+
+--==================================================
+-- TIÊU ĐỀ / THANH KÉO MENU
+--==================================================
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 45)
+title.Text = "DEBUG MENU"
+title.TextSize = 21
+title.Font = Enum.Font.GothamBold
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundColor3 = Color3.fromRGB(35,35,35)
+title.BorderSizePixel = 0
+title.Parent = frame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = title
+
+--==================================================
+-- KÉO MENU
+--==================================================
+
+local draggingMenu = false
+local dragStart
+local startPos
+
+title.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		draggingMenu = true
+		dragStart = input.Position
+		startPos = frame.Position
+	end
+end)
+
+title.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		draggingMenu = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if draggingMenu then
+		if input.UserInputType == Enum.UserInputType.MouseMovement
+			or input.UserInputType == Enum.UserInputType.Touch then
+
+			local delta = input.Position - dragStart
+
+			frame.Position = UDim2.new(
+				startPos.X.Scale,
+				startPos.X.Offset + delta.X,
+				startPos.Y.Scale,
+				startPos.Y.Offset + delta.Y
+			)
+		end
+	end
+end)
+
+--==================================================
+-- MỞ / ĐÓNG
+--==================================================
+
+toggle.MouseButton1Click:Connect(function()
+	frame.Visible = not frame.Visible
+	toggle.Text = frame.Visible and "ĐÓNG MENU" or "MỞ MENU"
+end)
+
+--==================================================
+-- HÀM TẠO LABEL
+--==================================================
+
+local function createLabel(text, y)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, -30, 0, 25)
+	label.Position = UDim2.fromOffset(15, y)
+	label.Text = text
+	label.TextSize = 16
+	label.Font = Enum.Font.Gotham
+	label.TextColor3 = Color3.new(1,1,1)
+	label.BackgroundTransparency = 1
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = frame
+
+	return label
+end
+
+--==================================================
+-- SPEED
+--==================================================
+
+local speed = 16
+
+local speedLabel = createLabel("Tốc độ: 16", 55)
+
+local speedSlider = Instance.new("TextButton")
+speedSlider.Size = UDim2.new(1, -30, 0, 22)
+speedSlider.Position = UDim2.fromOffset(15, 83)
+speedSlider.Text = ""
+speedSlider.AutoButtonColor = false
+speedSlider.BackgroundColor3 = Color3.fromRGB(65,65,65)
+speedSlider.BorderSizePixel = 0
+speedSlider.Parent = frame
+
+local speedFill = Instance.new("Frame")
+speedFill.Size = UDim2.new(speed / 500, 0, 1, 0)
+speedFill.BackgroundColor3 = Color3.fromRGB(0,170,255)
+speedFill.BorderSizePixel = 0
+speedFill.Parent = speedSlider
+
+local function setSpeed(x)
+	local percent = math.clamp(
+		(x - speedSlider.AbsolutePosition.X) /
+		speedSlider.AbsoluteSize.X,
+		0,
+		1
+	)
+
+	speed = math.floor(percent * 500)
+
+	speedLabel.Text = "Tốc độ: " .. speed
+	speedFill.Size = UDim2.new(percent, 0, 1, 0)
+
+	local character = player.Character
+	local humanoid = character and
+		character:FindFirstChildOfClass("Humanoid")
+
+	if humanoid then
+		humanoid.WalkSpeed = speed
+	end
+end
+
+local speedDragging = false
+
+speedSlider.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		speedDragging = true
+		setSpeed(input.Position.X)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if speedDragging then
+		if input.UserInputType == Enum.UserInputType.MouseMovement
+			or input.UserInputType == Enum.UserInputType.Touch then
+
+			setSpeed(input.Position.X)
+		end
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		speedDragging = false
+	end
+end)
+
+--==================================================
+-- GOD MODE
+--==================================================
+
+local godMode = false
+
+local godButton = Instance.new("TextButton")
+godButton.Size = UDim2.new(1, -30, 0, 40)
+godButton.Position = UDim2.fromOffset(15, 120)
+godButton.Text = "BẤT TỬ: OFF"
+godButton.TextSize = 16
+godButton.TextColor3 = Color3.new(1,1,1)
+godButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
+godButton.BorderSizePixel = 0
+godButton.Parent = frame
+
+godButton.MouseButton1Click:Connect(function()
+	godMode = not godMode
+
+	godButton.Text = "BẤT TỬ: " ..
+		(godMode and "ON" or "OFF")
+end)
+
+--==================================================
+-- NOCLIP
+--==================================================
+
+local noclip = false
+
+local noclipButton = Instance.new("TextButton")
+noclipButton.Size = UDim2.new(1, -30, 0, 40)
+noclipButton.Position = UDim2.fromOffset(15, 170)
+noclipButton.Text = "XUYÊN TƯỜNG: OFF"
+noclipButton.TextSize = 16
+noclipButton.TextColor3 = Color3.new(1,1,1)
+noclipButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
+noclipButton.BorderSizePixel = 0
+noclipButton.Parent = frame
+
+noclipButton.MouseButton1Click:Connect(function()
+	noclip = not noclip
+
+	noclipButton.Text = "XUYÊN TƯỜNG: " ..
+		(noclip and "ON" or "OFF")
+end)
+
+--==================================================
+-- HITBOX
+--==================================================
+
+local hitboxEnabled = false
+local hitboxSize = 4
+local originalSizes = {}
+
+local hitboxLabel = createLabel("Hitbox: 4", 220)
+
+local hitboxSlider = Instance.new("TextButton")
+hitboxSlider.Size = UDim2.new(1, -30, 0, 22)
+hitboxSlider.Position = UDim2.fromOffset(15, 248)
+hitboxSlider.Text = ""
+hitboxSlider.AutoButtonColor = false
+hitboxSlider.BackgroundColor3 = Color3.fromRGB(65,65,65)
+hitboxSlider.BorderSizePixel = 0
+hitboxSlider.Parent = frame
+
+local hitboxFill = Instance.new("Frame")
+hitboxFill.Size = UDim2.new(0, 0, 1, 0)
+hitboxFill.BackgroundColor3 = Color3.fromRGB(255,80,80)
+hitboxFill.BorderSizePixel = 0
+hitboxFill.Parent = hitboxSlider
+
+local function setHitboxSize(x)
+	local percent = math.clamp(
+		(x - hitboxSlider.AbsolutePosition.X) /
+		hitboxSlider.AbsoluteSize.X,
+		0,
+		1
+	)
+
+	-- Hitbox từ 2 đến 20
+	hitboxSize = math.floor(2 + percent * 18)
+
+	hitboxLabel.Text = "Hitbox: " .. hitboxSize
+	hitboxFill.Size = UDim2.new(percent, 0, 1, 0)
+end
+
+local hitboxDragging = false
+
+hitboxSlider.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		hitboxDragging = true
+		setHitboxSize(input.Position.X)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if hitboxDragging then
+		if input.UserInputType == Enum.UserInputType.MouseMovement
+			or input.UserInputType == Enum.UserInputType.Touch then
+
+			setHitboxSize(input.Position.X)
+		end
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		hitboxDragging = false
+	end
+end)
+
+local hitboxButton = Instance.new("TextButton")
+hitboxButton.Size = UDim2.new(1, -30, 0, 40)
+hitboxButton.Position = UDim2.fromOffset(15, 280)
+hitboxButton.Text = "HITBOX: OFF"
+hitboxButton.TextSize = 16
+hitboxButton.TextColor3 = Color3.new(1,1,1)
+hitboxButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
+hitboxButton.BorderSizePixel = 0
+hitboxButton.Parent = frame
+
+hitboxButton.MouseButton1Click:Connect(function()
+	hitboxEnabled = not hitboxEnabled
+
+	hitboxButton.Text = "HITBOX: " ..
+		(hitboxEnabled and "ON" or "OFF")
+end)
+
+--==================================================
+-- RESET
+--==================================================
+
+local resetButton = Instance.new("TextButton")
+resetButton.Size = UDim2.new(1, -30, 0, 40)
+resetButton.Position = UDim2.fromOffset(15, 330)
+resetButton.Text = "RESET"
+resetButton.TextSize = 16
+resetButton.TextColor3 = Color3.new(1,1,1)
+resetButton.BackgroundColor3 = Color3.fromRGB(80,50,50)
+resetButton.BorderSizePixel = 0
+resetButton.Parent = frame
+
+resetButton.MouseButton1Click:Connect(function()
+	speed = 16
+	speedLabel.Text = "Tốc độ: 16"
+	speedFill.Size = UDim2.new(16 / 500, 0, 1, 0)
+
+	godMode = false
+	noclip = false
+	hitboxEnabled = false
+	hitboxSize = 4
+
+	godButton.Text = "BẤT TỬ: OFF"
+	noclipButton.Text = "XUYÊN TƯỜNG: OFF"
+	hitboxButton.Text = "HITBOX: OFF"
+
+	local character = player.Character
+	local humanoid = character and
+		character:FindFirstChildOfClass("Humanoid")
+
+	if humanoid then
+		humanoid.WalkSpeed = 16
+	end
+
+	for root, data in pairs(originalSizes) do
+		if root and root.Parent then
+			root.Size = data.Size
+			root.Transparency = data.Transparency
+		end
+	end
+
+	originalSizes = {}
+end)
+
+--==================================================
+-- VÒNG LẶP
+--==================================================
+
+RunService.Stepped:Connect(function()
+	local character = player.Character
+
+	if character and noclip then
+		for _, part in ipairs(character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
+		end
+	end
+
+	if hitboxEnabled then
+		for _, target in ipairs(Players:GetPlayers()) do
+			if target ~= player and target.Character then
+
+				local root =
+					target.Character:FindFirstChild("HumanoidRootPart")
+
+				if root then
+					if not originalSizes[root] then
+						originalSizes[root] = {
+							Size = root.Size,
+							Transparency = root.Transparency
+						}
+					end
+
+					root.Size = Vector3.new(
+						hitboxSize,
+						hitboxSize,
+						hitboxSize
+					)
+
+					root.Transparency = 0.6
+					root.CanCollide = false
+				end
+			end
+		end
+	end
+end)
+
+RunService.Heartbeat:Connect(function()
+	if godMode then
+		local character = player.Character
+		local humanoid = character and
+			character:FindFirstChildOfClass("Humanoid")
+
+		if humanoid then
+			humanoid.Health = humanoid.MaxHealth
+		end
+	end
+end)
+
+--==================================================
+-- RESPAWN
+--==================================================
+
+player.CharacterAdded:Connect(function(character)
+	task.wait(0.5)
+
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+	if humanoid then
+		humanoid.WalkSpeed = speed
+	end
+end)
